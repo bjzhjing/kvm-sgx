@@ -16,9 +16,17 @@
 #define SGX_MAX_EPC_SECTIONS		8
 #define SGX_MAX_ADD_PAGES_LENGTH	0x100000
 #define SGX_EEXTEND_BLOCK_SIZE		256
+#define SGX_NR_TO_SCAN			16
+#define SGX_NR_LOW_PAGES		32
+#define SGX_NR_HIGH_PAGES		64
+
+/* Pages, which are being tracked by the page reclaimer. */
+#define SGX_EPC_PAGE_RECLAIMER_TRACKED	BIT(0)
 
 struct sgx_epc_page {
 	unsigned int section;
+	unsigned int flags;
+	struct sgx_encl_page *owner;
 	struct list_head list;
 };
 
@@ -34,6 +42,7 @@ struct sgx_epc_section {
 	struct list_head page_list;
 	struct list_head laundry_list;
 	struct sgx_epc_page *pages;
+	unsigned long free_cnt;
 	spinlock_t lock;
 };
 
@@ -61,5 +70,9 @@ static inline void *sgx_get_epc_virt_addr(struct sgx_epc_page *page)
 
 struct sgx_epc_page *__sgx_alloc_epc_page(void);
 void sgx_free_epc_page(struct sgx_epc_page *page);
+
+void sgx_mark_page_reclaimable(struct sgx_epc_page *page);
+int sgx_unmark_page_reclaimable(struct sgx_epc_page *page);
+struct sgx_epc_page *sgx_alloc_epc_page(void *owner, bool reclaim);
 
 #endif /* _X86_SGX_H */
